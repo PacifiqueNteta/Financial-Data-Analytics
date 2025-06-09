@@ -2,7 +2,7 @@
 ---
 
 ## Table of Content
-- [1. Project Overview and Objectives](#1-project-overview-and-objectives)
+- [1. Project Overview](#1-project-overview)
 - [2. Tools used](#2-tools-used)
 - [3. Methodology and Process](#3-methodology-and-process)
   - [3.1. Data Collection/Data Source](#31-data-collectiondata-source)
@@ -78,14 +78,216 @@ The following issues were noticed in the initial data exploration:
 
 
 
-The following tasks were performed:
-- 
+The following data cleaning tasks were performed:
+
+1. Data Formatting & Standardization
+ - Replace commas with points in `Amount` column
+```SQL
+--Replace the commas(",") in the "Amount"column with points(".") to facilitate calculations and data type convertion later
+UPDATE JuneToJanuary
+SET Amount =  REPLACE(Amount, ',', '.')
+```
+ - Clean `Description` column (remove '[image]')
+```SQL
+--Clean the "Description" column
+UPDATE JuneToJanuary
+SET Description = REPLACE(Description,'[image]', '')
+```
+ - Convert `Date` column from datetime to date
+```SQL
+--Convert the "Date" column from datetime to date
+ALTER TABLE JuneToJanuary
+ALTER COLUMN Date DATE
+```
+2. Data Transformation & Categorization
+ - Add new columns for categorization (Amount_Clean, Balance_clean, etc.)
+```SQL
+--- Add new columns for categorizations
+Alter Table JuneToJanuary 
+Add Amount_Clean float,
+	Balance_clean float,
+    TransactionType nvarchar(50),
+	Category nvarchar(50),
+	SubCategory nvarchar(50)
+```
+
+ - Set values for Amount_Clean (handling 'Cr' suffix)
+```SQL
+--- Set or add values to the 'Amount_Clean' Column
+UPDATE JuneToJanuary
+SET Amount_Clean = 
+    CASE 
+	 WHEN Amount LIKE '%Cr' THEN CAST(SUBSTRING(Amount, 1, LEN(Amount) - 2) AS DECIMAL(18, 2))
+     ELSE CAST(Amount AS DECIMAL(18, 2))
+	 END
+```
+
+ - Set values for Balance_Clean
+```SQL
+-- Balance_Clean
+UPDATE JuneToJanuary
+SET Balance_Clean =
+    CAST(SUBSTRING(Balance, 1, LEN(Balance) - 2) AS DECIMAL(18, 2))
+```
+
+ - Determine TransactionType (Credit/Debit)
+```SQL
+-- TransactionType
+UPDATE JuneToJanuary
+SET TransactionType =
+    CASE 
+	 WHEN Amount LIKE '%Cr%' THEN 'Credit'
+	 ELSE 'Debit'
+	END 
+```
+3. Data Categorization Logic
+ - Category rules for Credit transactions
+```SQL
+-- Category - Credit
+UPDATE JuneToJanuary
+SET Category = 
+    CASE 
+	 WHEN Description like '%ADT%' THEN 'ATM Cash Deposit'
+	 WHEN Description like '%Transfer%' THEN 'TransferFromSavings'
+	 ELSE 'Other' 
+	 END 
+WHERE TransactionType = 'Credit'
+```
+
+ - Category rules for Debit transactions
+```SQL
+-- Category - Debit
+UPDATE JuneToJanuary
+SET Category = 
+    CASE 
+	 WHEN Description like '%Purchase%' THEN 'Purchases & Payments'
+	 WHEN Description like '%Prepaid%' THEN 'Purchases & Payments'
+	 WHEN Description like '%Byc%' THEN 'Savings'
+	 WHEN Description like '%saving%' THEN 'Savings'
+	 WHEN Description like '%Fee%' THEN 'Banking Fees'
+	 WHEN Description like '%ATM%' THEN 'ATM Withdrawal'
+	 WHEN Description like '%Send%Money%' THEN 'E-Wallet'
+	 ELSE 'Other' 
+	 END 
+WHERE TransactionType = 'Debit'
+```
+
+ - SubCategory rules for Debit transactions
+```SQL
+--Subcategory - Debit
+UPDATE JuneToJanuary
+SET SubCategory = 
+    CASE 
+	 WHEN Description like '%Checker%' THEN 'Groceries & Toiletries'
+	 WHEN Description like '%PNP%' THEN 'Groceries & Toiletries'
+	 WHEN Description like '%PEP%' THEN 'Groceries & Toiletries'
+	 WHEN Description like '%Shoprite%' THEN 'Groceries & Toiletries'
+	 WHEN Description like '%Clicks%' THEN 'Groceries & Toiletries'
+	 WHEN Description like '%Riviera%' THEN 'Groceries & Toiletries'
+	 WHEN Description like '%Mr%Price%' THEN 'Clothing'
+	 WHEN Description like '%Clothing%' THEN 'Clothing'
+	 WHEN Description like '%Mcd%' THEN 'Food & Beverage'
+	 WHEN Description like '%Roman%' THEN 'Food & Beverage'
+	 WHEN Description like '%Starbucks%' THEN 'Food & Beverage'
+	 WHEN Description like '%Fish%Chip%' THEN 'Food & Beverage'
+	 WHEN Description like '%Takea%' THEN 'OnlineShopping'
+	 WHEN Description like '%Unisa%' THEN 'Tuition Fees'
+	 WHEN Description like '%Electricity%' THEN 'Electricity'
+	 WHEN Description like '%Bolt%' THEN 'Ride Services'
+	 WHEN Description like '%Airtime%' THEN 'Airtime'
+	 WHEN Description like '%PNA%' THEN 'Electronics & Stationaries'
+	 WHEN Description like '%Cash%Crusaders%' THEN 'Electronics & Stationaries'
+	 WHEN Description like '%Vodacom' THEN 'Electronics & Stationaries'
+	 WHEN Description like '%Game%' THEN 'Electronics & Stationaries'
+	 WHEN Description like '%Post%' THEN 'Electronics & Stationaries'
+	 ELSE 'Other' 
+	 END 
+WHERE TransactionType = 'Debit'
+```
+
+ - Handling NULL values in SubCategory for Credit transactions
+```SQL
+--Replace the null cells with 'Other'
+UPDATE JuneToJanuary
+SET SubCategory = 
+    CASE 
+	 WHEN SubCategory is NULL THEN 'Other'
+	 END
+WHERE TransactionType = 'Credit'
+```
+4. Data Migration
+```SQL
+--Create the final table - BankStatement which will contain clean data
+CREATE TABLE BankStatement (
+    Date DATE,
+    Description NVARCHAR(255), 
+    Amount DECIMAL(18, 2),
+	Balance DECIMAL(18, 2),
+    TransactionType NVARCHAR(50),
+	Category NVARCHAR(255),
+	SubCategory NVARCHAR(255)
+)
+```
+
+```SQL
+--- Creation and insertion of values in the final clean table
+INSERT INTO BankStatement
+SELECT
+    Date,
+    Description,
+    Amount_Clean,
+	Balance_Clean,
+    TransactionType,
+	Category,
+	SubCategory
+FROM JuneToJanuary
+```
+
+5. Data Quality Check
+
+ - Final Table check
+```SQL
+Select *
+From BankStatement
+```
+
+<img width="760" alt="image" src="https://github.com/user-attachments/assets/96b99bef-fd39-4009-b147-89715003b4a2" />
+
+
+ - Data format check
+```SQL
+--Checking Data Types
+SELECT COLUMN_NAME, DATA_TYPE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'BankStatement'
+```
+
+<img width="257" alt="image" src="https://github.com/user-attachments/assets/53582195-298a-4955-9fe8-8f971f78e02d" />
+
+ - Duplicates check
+```SQL
+--Checking for duplicates
+Select Date, Description, Amount, Balance, COUNT(*) As Count
+From BankStatement
+GROUP BY Date, Description, Amount, Balance
+HAVING COUNT(*) > 1
+ORDER BY Date 
+```
+
+
+<img width="312" alt="image" src="https://github.com/user-attachments/assets/2d2daa70-34f8-431b-ad1e-93094c4063b5" />
+
+
+The resutl shows that there's no duplicates. Exploratory Analysis can now be started.
+   
+
+
 
 With the source here being `2022/01/01` as it was the start temporal coverage start date of the data.
 
 - Data formating: Here I renamed the sales table, renamed some columns and changed the data types of some columns.
 
-### 3.3. Data Modelling and Transfomation
+### 3.3. Exploratory Data Analysis
 #### 3.3.1. Data Modelling
 After creating the date dimension table, I then created a relationship between the *Date table* and the *Car Sales* table through the `Date` column in each of the two tables.
 
