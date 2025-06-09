@@ -11,8 +11,8 @@
   - [3.1. Data Collection](#31-data-collection)
   - [3.2. Data Preparation/Cleaning](#32-data-preparationcleaning)
   - [3.3. Exploratory Data Analysis](#33-exploratory-data-analysis)
-  - [3.4. Key Insights](#35-key-Insights)
-  - [3.5. Data Visualization](#36-data-visualization)
+  - [3.4. Key Insights](#36-key-insights)
+  - [3.5. Data Visualization](#35-data-visualization)
 - [4. Recommendations](#4-recommendations)
 
 ---
