@@ -405,7 +405,7 @@ ORDER BY Balance
 
 
 ### 3.5. Data Visualization
-After the explorarory data analysis in SQL Server, I loaded the final table ***BankStatement*** in Power BI where I developed a dashboards to better group all the insights in a visualization.  This Power BI dashboard can be accessed [here](https://app.powerbi.com/view?r=eyJrIjoiZjcwMTI5OTItZDEwMi00MmFiLWJkNjUtZWJjN2ZmYTNhMTMwIiwidCI6ImNhOWE4YjhjLTNlYTMtNDc5OS1hNDNlLTU1MTAzOThlN2EzYiIsImMiOjh9&pageName=ReportSection)
+After the explorarory data analysis in SQL Server, I loaded the final table ***BankStatement*** in Power BI where I developed a dashboards to better group all the insights in a visualization.  This interactive Power BI dashboard can be viewed [here](https://app.powerbi.com/view?r=eyJrIjoiZjcwMTI5OTItZDEwMi00MmFiLWJkNjUtZWJjN2ZmYTNhMTMwIiwidCI6ImNhOWE4YjhjLTNlYTMtNDc5OS1hNDNlLTU1MTAzOThlN2EzYiIsImMiOjh9&pageName=ReportSection)
 
 
 <img width="578" alt="image" src="https://github.com/user-attachments/assets/ad056ea5-2d93-4281-ba06-36cba4d2d95a" />
