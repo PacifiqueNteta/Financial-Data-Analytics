@@ -1,16 +1,18 @@
 # Financial-Data-Analytics: Personal Bank Statement Deep Dive
+
+<img width="578" alt="image" src="https://github.com/user-attachments/assets/ad056ea5-2d93-4281-ba06-36cba4d2d95a" />
+
 ---
 
 ## Table of Content
 - [1. Project Overview](#1-project-overview)
 - [2. Tools used](#2-tools-used)
 - [3. Methodology and Process](#3-methodology-and-process)
-  - [3.1. Data Collection/Data Source](#31-data-collectiondata-source)
+  - [3.1. Data Collection](#31-data-collection)
   - [3.2. Data Preparation/Cleaning](#32-data-preparationcleaning)
-  - [3.3. Data Modelling and Transfomation](#33-data-modelling-and-transfomation)
-  - [Exploratory Data Analysis](#34-exploratory-data-analysis)
-  - [3.5. Results/Insights](#35-resultsinsights)
-  - [3.6. Data Visualization](#36-data-visualization)
+  - [3.3. Exploratory Data Analysis](#33-exploratory-data-analysis)
+  - [3.4. Key Insights](#35-key-Insights)
+  - [3.5. Data Visualization](#36-data-visualization)
 - [4. Recommendations](#4-recommendations)
 
 ---
@@ -31,7 +33,7 @@ The goal of this project was to transform raw personal bank statement data into 
 - Power BI: Interactive dashboard creation and insightful data visualization.
 
 ## 3. Methodology and Process
-### 3.1. Data Collection/Data Source
+### 3.1. Data Collection
 I started the project by importing the raw bank pdf statements in Microsoft Excel where I used Power Query to extract raw transactions. An example of the bank statement can be accessed [here](https://github.com/PacifiqueNteta/Financial-Data-Analytics/blob/main/Bank%20Statement%20June%20-%20July%20S.pdf).
 
 ### 3.2. Data Preparation/Cleaning
@@ -285,60 +287,145 @@ The result shows that there's no duplicates. Exploratory Analysis can now be sta
 
 ### 3.3. Exploratory Data Analysis
 
+Below are some queries I made to track income and expenses:
+
+```SQL
+--Contribution percentage for each category to the total Amount of credit transactions
+Select Category, SUM(Amount) As Amount, SUM(Amount)/(Select SUM(Amount)From BankStatement Where TransactionType = 'Credit')*100 As Percentage 
+From BankStatement
+Where TransactionType = 'Credit'
+GROUP BY Category
+ORDER BY Percentage Desc
+```
+
+```SQL
+--Contribution or distribution percentage for each category to the total Amount of debit transactions
+Select Category, SUM(Amount) As Amount, SUM(Amount)/(Select SUM(Amount)From BankStatement Where TransactionType = 'Debit')*100 As Percentage 
+From BankStatement
+Where TransactionType = 'Debit'
+GROUP BY Category
+ORDER BY Percentage Desc
+```
+
+```SQL
+--Contribution percentage of subcategories under 'Purchases & Payements' category compared to total Amount of 'Purchases & Payements' category
+Select Subcategory,
+       SUM(Amount) As Amount,
+	  (SUM(Amount)/(Select Sum(Amount) From BankStatement Where Category = 'Purchases & Payments'))*100 As Percentage,
+	   AVG(Amount) As AverageAmount,
+	   MAX(Amount) As MaxAmount,
+	   MIN(Amount) As MinAmount
+From BankStatement
+Where TransactionType = 'Debit' AND Category = 'Purchases & Payments'
+GROUP BY SubCategory
+ORDER BY Percentage Desc
+```
+
+```SQL
+-- Average Money Spent on Airtime per month
+SELECT 
+    FORMAT(Date, 'yyyy-MM') AS Month,
+    AVG(Amount) AS AverageAirtimeSpent
+FROM BankStatement
+WHERE Category = 'Purchases & Payments' AND SubCategory = 'Airtime'
+GROUP BY FORMAT(Date, 'yyyy-MM')
+ORDER BY AverageAirtimeSpent Desc
+```
+
+```SQL
+--Average Amount spent on Rides per month
+SELECT 
+    FORMAT(Date, 'yyyy-MM') AS Month,
+    AVG(Amount) AS AverageRideServicesSpent
+FROM BankStatement
+WHERE Category = 'Purchases & Payments' AND SubCategory = 'Ride Services'
+GROUP BY FORMAT(Date, 'yyyy-MM')
+```
+
+```SQL
+--Total Amount spent on rides per month
+SELECT FORMAT(Date, 'yyyy-MM') AS Month, SUM(Amount)
+FROM BankStatement
+WHERE Category = 'Purchases & Payments' AND SubCategory = 'Ride Services'
+GROUP BY FORMAT(Date, 'yyyy-MM')
+```
+
+```SQL
+--Total Banking fees per month
+SELECT 
+    FORMAT(Date, 'yyyy-MM') AS Month,
+    SUM(Amount) AS AverageBankingFees
+FROM BankStatement
+WHERE Category = 'Banking Fees'
+GROUP BY FORMAT(Date, 'yyyy-MM')
+ORDER BY AverageBankingFees DESC
+```
+
+```SQL
+--Details on the month with the highest total Banking fees
+SELECT Date, Description, Amount
+FROM BankStatement
+WHERE Category = 'Banking Fees' AND FORMAT(Date, 'yyyy-MM') = '2024-06'
+```
+
+```SQL
+--Highest Balance in the account
+SELECT Max(Balance) Highest_Balance
+FROM BankStatement
+
+SELECT TOP 1 Date, Balance
+FROM BankStatement
+ORDER BY Balance DESC
+```
+
+```SQL
+-- Lowest Balance in the account
+SELECT Min(Balance) AS Lowest_Balance
+FROM BankStatement
 
 
+SELECT TOP 1 Date, Balance
+FROM BankStatement
+ORDER BY Balance
+```
+### 3.4. Key Insights
+
+- +/- 83%(or R30100) of incoming money in the account from June 2023(the 15th) to January 2024(the 15th) came from ATM Cash Deposit, while only 5%(R1884) came from the savings account. The remaining contribution(~11% or R4148.44) is classified as other. But since it represent a good 11% of the total contribution, it is also important to have a closer look at it and find out, what it represents.
+- The category'Other' in the credit transactions contains transactions such as payment/transfer received from other Bank accounts as well as an Inward Swift which represent a money transfer from a foreign bank account.
+- The highest Cash deposited on the account is R7100 and it was deposited on the 20th of November 2023 and as per the description it is referred to as 'Laptop Money'.
+- Around 81%(or R28294.16) of the money that went out of the account(debit) in the period covered in this table(15 June 2023 to 15 January 2024) went to 'Purchases & Payments', 7%(or R2530.83) went into savings, around 6%(or R1940.00) went to E-Wallets, around 3%(or R1250.00) went to ATM Withdrawals and around 2%(R828.00) went to Banking fees. The remaining contribution(10px.2%10px=) is classified as 'Other'.
+- The biggest contribution(around 32% of total) in the 'Purchases & Payments'(which accounts around 81% of all debit transactions) category is classified as 'Other'(We will have a closer look at it after). The second biggest contribution is 'Tuition Fees' which accounts around 31% of total contribution or R8860. And around R2062(or around 7%) was spent on 'Airtime' which is quite close to the amount spent on 'Groceries & Toiletries'(R2384.92 or around 8%). We can aslo hihlights 'Ride Services' wich accounts around 1% of total 'Purchase & Payments'. It is important to note here the the amount on 'Ride Services' doest not really reflect the reality as this reflects only rides that we paid with the Bank card; the rides paid in cash are not reflected here.
+- The month of October was the month with the highest spending on 'Purchases & Payments' with R1276.30
+- The month of October was the month with the highest spending on 'Purchases & Payments' with R1276.30
+- The month of November was the month with the highest spending on 'Airtime.
+- The month of September was the month with the highest spendind on 'Groceries & Toiletries' with R728.45 while the month of July had the lowest amount spent on 'Groceries & Toiletries' with just R95.06
+- June was the month with the highest 'Banking Fees'(R150)
+- The highest 'Balance' registered in the account was R14226.44 and that was registered on the 12th of December 2023.
+- The lowest 'Balance' was R0.45 and it was registered on the 27th of December 2023.
 
 
+### 3.5. Data Visualization
+After the explorarory data analysis in SQL Server, I loaded the final table ***BankStatement*** in Power BI where I developed a dashboards to better group all the insights in a visualization.  This Power BI dashboard can be accessed [here](https://app.powerbi.com/view?r=eyJrIjoiZjcwMTI5OTItZDEwMi00MmFiLWJkNjUtZWJjN2ZmYTNhMTMwIiwidCI6ImNhOWE4YjhjLTNlYTMtNDc5OS1hNDNlLTU1MTAzOThlN2EzYiIsImMiOjh9&pageName=ReportSection)
 
 
+<img width="578" alt="image" src="https://github.com/user-attachments/assets/ad056ea5-2d93-4281-ba06-36cba4d2d95a" />
 
-### 3.4. Data Visualization
-After the explorarory data analysis, I developed dashboards to present properly the insights I got.
-
-I grouped the charts into 5 dashboards/pages: Summary, Customer Details, Dealers Details, Car Spec Details and Map. The summary page provides an overview of the insights, the Customer Details has the named indicates provides more details on customer insights, the Dealers Details more details on the dealers, the Car Spec page provides insights related to car features and the Map page provide geolocalization insights.
-
-#### 3.4.1. Summary Page
-
-![image](https://github.com/user-attachments/assets/9b6175b1-feb7-43c4-b8b1-02304456b766)
-
-On the Summary page, I added more visualizations on trends on the Revenue trends chart. To acces these viz, you just have to click on the info button as shown below 
-![image](https://github.com/user-attachments/assets/1daef977-a498-4b16-bb73-21c261e2b2b5)
-
-And when you click, you get the dashboard below:
-
-![image](https://github.com/user-attachments/assets/39aa16f1-755f-49b3-b0ce-dbe7fcb00de5)
-
-
-#### 3.6.2. Customer Details Page
-
-![image](https://github.com/user-attachments/assets/ffac1c8a-aa31-4f40-82e7-a61e27e91ea8)
-
-#### 3.6.3. Dealers Details Page
-
-![image](https://github.com/user-attachments/assets/42474ab8-fd35-4bce-ac33-85ab081a20b9)
-
-#### 3.6.4. Car Spec Page
-
-![image](https://github.com/user-attachments/assets/d6e7d3a4-f967-426f-a4f1-ef4e312c9299)
-
-#### 3.6.5.Map Page
-
-![image](https://github.com/user-attachments/assets/3e04341a-e4d7-473b-b729-8b3fdab033e5)
-
-The report containing all the pages can be accessed [here](https://app.powerbi.com/view?r=eyJrIjoiZTA5NGQ0MzctNGFlOC00ZmRiLWJiMDYtYWRlNTBmZTVjM2E4IiwidCI6ImNhOWE4YjhjLTNlYTMtNDc5OS1hNDNlLTU1MTAzOThlN2EzYiIsImMiOjh9&pageName=96c58c348a5581de78ec)
 
 ## 4. Recommendations
-### 4.1. For Dealerships/New Entrants:
-1.	Expand in High-Growth Regions: Prioritize Austin and Janesville for new dealerships or marketing spend.
-2.	Leverage Top Brands/Models: Stock more Chevrolet, Ford, and Dodge vehicles, and promote high-revenue models like Lexus LS400.
-3.	Target High-Income & Male Buyers: Tailor ads for SUVs/hatchbacks (e.g., luxury features for high-income males).
-4.	Seasonal Promotions: Boost inventory before peaks (May, September, December) and offer discounts in slower months (March).
-### 4.2. For Customers:
-•	Budget Buyers: Explore Buddy Storbeck’s Diesel Service Inc (avg. price $27,217; cheapest car at $900).
-•	Luxury Seekers: Consider Lexus LS400 (high revenue per unit) or German brands (premium appeal).
-### 4.3. For Manufacturers:
-•	USA Brands: Ramp up production of SUVs/hatchbacks (high demand).
-•	Foreign Brands: Compete with US brands on other aspects such as innovation to gain more markets.
+**1. Multiply or diversify sources of income.**
+As seen during the analysis, the account holder relies heavily on 'ATM Cash Deposit' (accounting for around 83% of income). Finding another source of income will help the account holder reduce dependence on 'ATM Cash Deposit' and lower associated banking fees.
+
+**2. Budget.**
+- Budget Expenses:
+  - Many economists suggest a 50/30/20 or 50/40/10px budget plan, allocating 50% to savings, 30 to 40% to needs, and 10px to 20% wants. The account holder is spending around 81% on 'Purchases and Payments' which are not even all needs. He should review his spendings and allocate specific budgets to his needs and wants to fit the 30 to 40 and 10px to 20 model mentioned above, leaving the 50% remaining to savings.
+  - The expense budget should also go down as far as to subcategories. A fixed amount should be allocated to all subcategories. Spending on 'Airtime' and 'Groceries & Toiletries' for example, are too close whereas one is a 'need' and the other is a 'want'. The spending on 'Airtime' should be reduced and such adjustment should be made on all subcategories by budgeting and reducing unnecessary spending.
+- Budget Savings:
+
+
+The account holder should review spendings and aim to allocate 50% of income to savings, which is currently at 7%. He should also adjust spending habits to achieve a more balanced budget.
+
+**3. Manage Balance Fluctuations.**
+There is a significant difference between the highest and lowest balance. This inconsistency in balance is noticable throughout the whole period. The account holder can address this by applying above measures and maintaining financial discipline.
 
 
 
