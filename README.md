@@ -36,25 +36,50 @@ I started the project by importing the raw bank pdf statements in Microsoft Exce
 
 ### 3.2. Data Preparation/Cleaning
 #### 3.2.1. Initial Data Cleaning/Preparation with Power Query in Excel
-6 bank statements were used here covering the period from June 15, 2023 - January 15, 2024. These individual statements were imported in Excel than appended in one table. 
-In the prepation and cleaning phase, I performed the following tasks:
-- Data Inspection: I loaded the data in Microsoft Excel to have an overview of the data. After that, I then loaded the data IN Power BI for further inspection.
-- Date Dimension Table creation: After inspecting the data, I realized that to properly perform time/date analysis, I had to create a date dimesion table where I could split the date into more elements/components. After creating the table, I then proceeded to split/break the date into the following components for time analysis purposes:
-   - Year
-   - Month
-   - Day of the week
-   - Start of week
-   - Start of month
-   - Start of year,...
+6 bank statements were used here covering the period from June 15, 2023 - January 15, 2024. These individual statements were imported in Excel than appended in one table. A copy of the final Excel file can be accessed [here](https://github.com/PacifiqueNteta/Financial-Data-Analytics/blob/main/Bank_Statements%20Example.xlsx).
 
-I used the following M code to create a date dimension table:
-```M Code
-= List.Dates(
-Source,
-Number.From(#date(2023, 12, 31))- Number.From(Source),
-#duration(1,0,0,0)
-)
+#### 3.2.2. Deeper Data Cleaning/Preparation with SQL Server
+After the initial data preparation in Excel with POWER QUERY, the Excel file was imported in SQL Server were deeper cleaning was performed. Before further cleaningg, the table was renamed ***JuneToJanuary*** and an initial data exploration was made to see possible data problems. To perform the initial data exploration, I used the queries below:
+
+```SQL
+--Table check
+Select *
+From JuneToJanuary
 ```
+
+```SQL
+--Checking Data Types
+SELECT COLUMN_NAME, DATA_TYPE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'JuneToJanuary'
+```
+
+The following issues were noticed in the initial data exploration:
+
+- The presence of letters ('Cr') in the columns `Amount` and `Balance`. The ('Cr') here stands for Credit and are there to make a difference between credit and debit transactions. These two columns are supposed to contain numbers only, the presence of 'Cr' will not make calculations on these columns possible.
+
+<img width="528" alt="image" src="https://github.com/user-attachments/assets/7b252da0-4b5a-4cb1-ab53-69e10afd8e82" />
+
+- The presence of commas (',') in instead of full stops('.') to delimit decimals in the `Amount` column. This will also not facilitate calculations in this column. 
+
+<img width="528" alt="image" src="https://github.com/user-attachments/assets/eaceb621-e06f-4472-a931-299f8b4e7e29" />
+
+- The columns `Amount` and `Balance` are NVARCHAR which is a string/text data type but it should be a numerical data type.
+
+<img width="242" alt="image" src="https://github.com/user-attachments/assets/c264c3f1-5d24-4db9-9575-a61aa7094179" />
+
+- The 'Date' column apprears as 'datetime' while it should only be 'date' as the raw statements only provide dates of transactions.
+
+<img width="242" alt="image" src="https://github.com/user-attachments/assets/ace3f500-1b63-4e10-88f2-1d33d86b9671" />
+
+- The presence of image in some rows in the `Description` column. This is coming from the images that were on the pdf bank statements.
+
+<img width="529" alt="image" src="https://github.com/user-attachments/assets/fccf7a89-98ed-4f44-b2ed-ba52379391d6" />
+
+
+
+The following tasks were performed:
+- 
 
 With the source here being `2022/01/01` as it was the start temporal coverage start date of the data.
 
